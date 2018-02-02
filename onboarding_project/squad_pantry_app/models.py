@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib import admin
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
@@ -15,28 +16,30 @@ class Dish(models.Model):
         (EGG, 'Contains Egg'),
     )
     dish_type = models.IntegerField(choices=DISH_TYPE, default=NON_VEG)
-    is_available = models.BooleanField(default=False)
-    prep_time_in_minutes = models.IntegerField(validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
+    is_available = models.BooleanField(default=False, help_text="Check if the dish is available")
+    prep_time_in_minutes = models.IntegerField(
+        validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
 
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    OP = 0
-    REJ = 1
-    ACC = 2
-    CAN = 3
-    PROC = 4
-    DEL = 5
+    ORDER_PLACED = 0
+    REJECTED = 1
+    ACCEPTED = 2
+    CANCELLED = 3
+    PROCESSING = 4
+    DELIVERY = 5
     STATUS = (
-        (OP, 'Order Placed'),
-        (REJ, 'Rejected'),
-        (ACC, 'Accepted'),
-        (CAN, 'Cancelled'),
-        (PROC, 'Processing'),
-        (DEL, 'Delivered')
+        (ORDER_PLACED, 'Order Placed'),
+        (REJECTED, 'Rejected'),
+        (ACCEPTED, 'Accepted'),
+        (CANCELLED, 'Cancelled'),
+        (PROCESSING, 'Processing'),
+        (DELIVERY, 'Delivered')
     )
-    status = models.IntegerField(choices=STATUS, default=OP)
-    scheduled_time = models.DateTimeField(blank=True, null=True, help_text='Schedule Your Order. Leave it blank for instant delivery')
+    status = models.IntegerField(choices=STATUS, default=ORDER_PLACED)
+    scheduled_time = models.DateTimeField(
+        blank=True, null=True, help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
