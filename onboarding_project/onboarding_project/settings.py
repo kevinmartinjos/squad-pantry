@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'onboarding_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'onboarding_project',
+        'NAME': 'onboarding',
         'USER': 'postgres',
         'PASSWORD': 'squadrun',
         'HOST': 'localhost',

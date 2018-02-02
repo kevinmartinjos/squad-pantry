@@ -1,37 +1,44 @@
 from django.db import models
-from datetime import datetime
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
-
-# Create your models here.
 
 
 class Dish(models.Model):
     dish_name = models.CharField(max_length=256, unique=True)
+    NON_VEG = 0
+    VEG = 1
+    EGG = 2
     DISH_TYPE = (
-        ('NV', 'Non-Vegetarian'),
-        ('V', 'Vegetarian'),
-        ('E', 'Contains Egg'),
+        (NON_VEG, 'Non-Vegetarian'),
+        (VEG, 'Vegetarian'),
+        (EGG, 'Contains Egg'),
     )
-    dish_type = models.CharField(max_length=2, choices=DISH_TYPE, default=DISH_TYPE[0][0])
-    is_available = models.BooleanField(default=False, blank=False)
-    estimated_preparation_time_in_minutes = models.IntegerField(validators=[MinValueValidator(1)])
+    dish_type = models.IntegerField(choices=DISH_TYPE, default=NON_VEG)
+    is_available = models.BooleanField(default=False)
+    prep_time_in_minutes = models.IntegerField(validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
 
 
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    OP = 0
+    REJ = 1
+    ACC = 2
+    CAN = 3
+    PROC = 4
+    DEL = 5
     STATUS = (
-        ('OP', 'Order Placed'),
-        ('REJ', 'Rejected'),
-        ('ACC', 'Accepted'),
-        ('CAN', 'Cancelled'),
-        ('PROC', 'Processing'),
-        ('DEL', 'Delivered')
+        (OP, 'Order Placed'),
+        (REJ, 'Rejected'),
+        (ACC, 'Accepted'),
+        (CAN, 'Cancelled'),
+        (PROC, 'Processing'),
+        (DEL, 'Delivered')
     )
-    status = models.CharField(max_length=4, choices=STATUS, default=STATUS[0][0])
-    scheduled_time = models.DateTimeField(blank=True, null=True)
-    order_placed_at = models.DateTimeField(default=datetime.now())
-    order_closed_at = models.DateTimeField(blank=True, null=True)
+    status = models.IntegerField(choices=STATUS, default=OP)
+    scheduled_time = models.DateTimeField(blank=True, null=True, help_text='Schedule Your Order. Leave it blank for instant delivery')
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(blank=True, null=True)
 
 
 class OrderDishRelation(models.Model):
