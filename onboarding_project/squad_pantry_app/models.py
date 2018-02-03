@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
-
+from squad_pantry_app.custom_valdidators import validate_dishes
 
 class Dish(models.Model):
     dish_name = models.CharField(max_length=256, unique=True)
@@ -22,7 +22,7 @@ class Dish(models.Model):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    #user = models.ForeignKey(User, on_delete=models.CASCADE)
     ORDER_PLACED = 0
     REJECTED = 1
     ACCEPTED = 2
@@ -43,10 +43,14 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
+    #def set_user(self, request):
+    #    print ("FUNCTION")
+    #    self.user = request.user.is_authenticated
+
 
 class OrderDishRelation(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, validators=[validate_dishes])
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
 
     class Meta:
