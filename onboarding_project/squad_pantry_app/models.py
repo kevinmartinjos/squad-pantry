@@ -1,9 +1,13 @@
 from django.db import models
 from django.contrib import admin
 from django.utils import timezone
+from django.dispatch import receiver
+from django.db.utils import IntegrityError
 from django.contrib.auth.models import User
+from django.db.models.signals import m2m_changed
 from django.core.validators import MinValueValidator
 from squad_pantry_app.custom_valdidators import validate_dishes
+
 
 class Dish(models.Model):
     dish_name = models.CharField(max_length=256, unique=True)
@@ -38,19 +42,17 @@ class Order(models.Model):
         (DELIVERY, 'Delivered')
     )
     status = models.IntegerField(choices=STATUS, default=ORDER_PLACED)
+    dish = models.ManyToManyField(Dish, through='OrderDishRelation')
     scheduled_time = models.DateTimeField(
         blank=True, null=True, help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
-    #def set_user(self, request):
-    #    print ("FUNCTION")
-    #    self.user = request.user.is_authenticated
-
 
 class OrderDishRelation(models.Model):
+    #DEFAULT_DISH_ID = 1
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, validators=[validate_dishes])
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
 
     class Meta:

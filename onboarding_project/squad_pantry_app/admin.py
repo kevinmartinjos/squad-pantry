@@ -1,28 +1,33 @@
 from django import forms
+from django.forms import BaseInlineFormSet
 from django.contrib import admin
-from django.contrib.auth.models import User
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
 
-# class OrderDishRelationForm(forms.ModelForm):
-#     class Meta:
-#         model = OrderDishRelation
-#         exclude = ()
-#
-#     def clean(self):
-#         #dish_list = self.cleaned_data.get('dish')
-#         print (self.data)
-#         return self.cleaned_data
 
-class OrderDishInline(admin.TabularInline):
+class BaseOrderDishFormset(BaseInlineFormSet):
+    def clean(self):
+        filled_forms = 0
+        for form in self.forms:
+            try:
+                if form.cleaned_data:
+                    filled_forms += 1
+            except AttributeError:
+                pass
+        if filled_forms < 1:
+            raise forms.ValidationError('Enter atleast One Dish')
+
+
+class OrderDishInline(admin.StackedInline):
     model = OrderDishRelation
+    formset = BaseOrderDishFormset
+    extra = 1
+
 
 class OrderAdmin(admin.ModelAdmin):
-    # form = OrderDishRelationForm
-    inlines = [
-        OrderDishInline
-    ]
+    inlines = [OrderDishInline,]
+
 
 admin.site.register(Dish)
 admin.site.register(Order, OrderAdmin)
-#admin.site.register(OrderDishRelation)
+admin.site.register(OrderDishRelation)
 admin.site.register(SquadUser)
