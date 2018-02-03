@@ -1,2 +1,5 @@
 #ignore the binary files
 *.pyc
+
+#ignore xmls
+*.xml
