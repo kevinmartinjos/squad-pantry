@@ -1,12 +1,6 @@
 from django.db import models
-from django.contrib import admin
-from django.utils import timezone
-from django.dispatch import receiver
-from django.db.utils import IntegrityError
 from django.contrib.auth.models import User
-from django.db.models.signals import m2m_changed
 from django.core.validators import MinValueValidator
-from squad_pantry_app.custom_valdidators import validate_dishes
 
 
 class Dish(models.Model):
@@ -24,9 +18,11 @@ class Dish(models.Model):
     prep_time_in_minutes = models.IntegerField(
         validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
 
+    def __str__(self):
+        return self.dish_name
+
 
 class Order(models.Model):
-    #user = models.ForeignKey(User, on_delete=models.CASCADE)
     ORDER_PLACED = 0
     REJECTED = 1
     ACCEPTED = 2
@@ -44,13 +40,13 @@ class Order(models.Model):
     status = models.IntegerField(choices=STATUS, default=ORDER_PLACED)
     dish = models.ManyToManyField(Dish, through='OrderDishRelation')
     scheduled_time = models.DateTimeField(
-        blank=True, null=True, help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
+        blank=True, null=True,
+        help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
 
 class OrderDishRelation(models.Model):
-    #DEFAULT_DISH_ID = 1
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
@@ -62,3 +58,6 @@ class OrderDishRelation(models.Model):
 class SquadUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_kitchen_staff = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.user)
