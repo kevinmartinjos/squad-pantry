@@ -1,5 +1,6 @@
 #ignore the binary files
 *.pyc
 
-#ignore xmls
+#ignore xmls, iml
 *.xml
+*.iml

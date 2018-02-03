@@ -13,7 +13,7 @@ class Dish(models.Model):
         (VEG, 'Vegetarian'),
         (EGG, 'Contains Egg'),
     )
-    dish_type = models.IntegerField(choices=DISH_TYPE, default=NON_VEG)
+    dish_type = models.IntegerField(choices=DISH_TYPE)
     is_available = models.BooleanField(default=False, help_text="Check if the dish is available")
     prep_time_in_minutes = models.IntegerField(
         validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
