@@ -40,8 +40,6 @@ INSTALLED_APPS = [
     'squad_pantry_app'
 ]
 
-AUTH_USER_MODEL = 'squad_pantry_app.SquadUser'
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
