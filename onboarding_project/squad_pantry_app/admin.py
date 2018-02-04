@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import User
-from django.forms import BaseInlineFormSet
+from django.forms import BaseInlineFormSet, fields
 from django.contrib.auth.admin import UserAdmin
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
 
@@ -25,8 +25,26 @@ class OrderDishInline(admin.StackedInline):
     extra = 1
 
 
+class OrderKitchenForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        exclude = ('dish', )
+
+
+class OrderUserForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        exclude = ('status', 'dish', )
+
+
 class OrderAdmin(admin.ModelAdmin):
-    inlines = [OrderDishInline,]
+    inlines = [OrderDishInline, ]
+
+    def get_form(self, request, obj=None, **kwargs):
+        if request.user.is_kitchen_staff:
+            return OrderKitchenForm
+        else:
+            return OrderUserForm
 
 
 class UserAdmin(admin.ModelAdmin):
