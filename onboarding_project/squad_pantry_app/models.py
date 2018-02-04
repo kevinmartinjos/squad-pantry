@@ -1,6 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+
 
 
 class Dish(models.Model):
@@ -55,9 +56,5 @@ class OrderDishRelation(models.Model):
         unique_together = ["order", "dish"]
 
 
-class SquadUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+class SquadUser(AbstractUser):
     is_kitchen_staff = models.BooleanField(default=False)
-
-    def __str__(self):
-        return str(self.user)

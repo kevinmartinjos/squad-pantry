@@ -1,6 +1,8 @@
 from django import forms
-from django.forms import BaseInlineFormSet
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.forms import BaseInlineFormSet
+from django.contrib.auth.admin import UserAdmin
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
 
 
@@ -27,6 +29,11 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderDishInline,]
 
 
+class UserAdmin(admin.ModelAdmin):
+    model = SquadUser
+    filter_horizontal = ('user_permissions', 'groups',)
+
+
 admin.site.register(Dish)
 admin.site.register(Order, OrderAdmin)
-admin.site.register(SquadUser)
+admin.site.register(SquadUser, UserAdmin)
