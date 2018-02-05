@@ -73,14 +73,16 @@ class OrderAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.placed_by = request.user
-            form.save()
+        form.save()
 
     def get_readonly_fields(self, request, obj=None):
-        closed_orders = [1, 3, 5]
+        closed_orders = [2, 3, 5]
         if request.user.is_kitchen_staff:
             if obj.status in closed_orders:
-                readonly = ('status', )
-                self.readonly_fields = self.readonly_fields + readonly
+                STATUS = 'status'
+                readonly = (STATUS, )
+                if STATUS not in self.readonly_fields:
+                        return self.readonly_fields + readonly
         return self.readonly_fields
 
 
