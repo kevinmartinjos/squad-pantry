@@ -84,11 +84,6 @@ class OrderAdmin(admin.ModelAdmin):
         return self.readonly_fields
 
 
-class UserAdmin(admin.ModelAdmin):
-    model = SquadUser
-    filter_horizontal = ('user_permissions', 'groups',)
-
-
 admin.site.register(Dish)
 admin.site.register(Order, OrderAdmin)
-admin.site.register(SquadUser, UserAdmin)
+admin.site.register(SquadUser)
