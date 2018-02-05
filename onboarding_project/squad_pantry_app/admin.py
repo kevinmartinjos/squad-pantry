@@ -40,6 +40,7 @@ class OrderUserForm(forms.ModelForm):
 
 class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderDishInline, ]
+    readonly_fields = ('closed_at', )
 
     def get_form(self, request, obj=None, **kwargs):
         if request.user.is_kitchen_staff:
@@ -61,6 +62,7 @@ class OrderAdmin(admin.ModelAdmin):
         cancelled = cancel_order(order, request)
         if cancelled == 1:
             order.closed_at = timezone.now()
+            order.save()
             self.message_user(request, 'Order cancelled', messages.SUCCESS)
         elif cancelled == -1:
             self.message_user(request, 'You did not place this order', messages.ERROR)
@@ -71,7 +73,15 @@ class OrderAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.placed_by = request.user
-        form.save()
+            form.save()
+
+    def get_readonly_fields(self, request, obj=None):
+        closed_orders = [1, 3, 5]
+        if request.user.is_kitchen_staff:
+            if obj.status in closed_orders:
+                readonly = ('status', )
+                self.readonly_fields = self.readonly_fields + readonly
+        return self.readonly_fields
 
 
 class UserAdmin(admin.ModelAdmin):
