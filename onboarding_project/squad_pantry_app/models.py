@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 
 
-
 class Dish(models.Model):
     dish_name = models.CharField(max_length=256, unique=True)
     NON_VEG = 0

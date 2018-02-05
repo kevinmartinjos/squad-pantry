@@ -1,8 +1,9 @@
 from django import forms
+from django.conf.urls import *
 from django.contrib import admin
-from django.contrib.auth.models import User
-from django.forms import BaseInlineFormSet, fields
-from django.contrib.auth.admin import UserAdmin
+from django.forms import BaseInlineFormSet
+from django.http import HttpResponseRedirect, HttpResponse
+from django.urls import reverse
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
 
 
@@ -45,6 +46,29 @@ class OrderAdmin(admin.ModelAdmin):
             return OrderKitchenForm
         else:
             return OrderUserForm
+
+    def get_urls(self):
+        urls = super(OrderAdmin, self).get_urls()
+        urlpatterns = [
+            url(
+                r'^cancel/',
+                self.admin_site.admin_view(self.cancel_order_view),
+                name='cancel_order_view',
+            ),
+        ]
+        return urlpatterns + urls
+
+    def cancel_order_view(self, request):
+        order = Order(request.POST)
+        odr = OrderDishRelation(request.POST)
+        print (odr)
+        print (order)
+        order.status = 3
+        print(order.created_at)
+        #order.save()
+        return HttpResponse(
+            "<h1>Cancelled</h1>"
+        )
 
 
 class UserAdmin(admin.ModelAdmin):
