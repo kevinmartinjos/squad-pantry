@@ -1,10 +1,10 @@
 from django import forms
 from django.conf.urls import *
-from django.contrib import admin
 from django.forms import BaseInlineFormSet
+from django.contrib import admin, messages
 from django.http import HttpResponseRedirect, HttpResponse
-from django.urls import reverse
-from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
+from django.utils import timezone
+from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, cancel_order
 
 
 class BaseOrderDishFormset(BaseInlineFormSet):
@@ -29,13 +29,13 @@ class OrderDishInline(admin.StackedInline):
 class OrderKitchenForm(forms.ModelForm):
     class Meta:
         model = Order
-        exclude = ('dish', )
+        exclude = ('dish', 'placed_by')
 
 
 class OrderUserForm(forms.ModelForm):
     class Meta:
         model = Order
-        exclude = ('status', 'dish', )
+        exclude = ('status', 'dish', 'placed_by')
 
 
 class OrderAdmin(admin.ModelAdmin):
@@ -48,27 +48,30 @@ class OrderAdmin(admin.ModelAdmin):
             return OrderUserForm
 
     def get_urls(self):
-        urls = super(OrderAdmin, self).get_urls()
-        urlpatterns = [
+        return [
             url(
-                r'^cancel/',
+                r'^(.+)/change/cancel-order/$',
                 self.admin_site.admin_view(self.cancel_order_view),
                 name='cancel_order_view',
             ),
-        ]
-        return urlpatterns + urls
+        ] + super(OrderAdmin, self).get_urls()
 
-    def cancel_order_view(self, request):
-        order = Order(request.POST)
-        odr = OrderDishRelation(request.POST)
-        print (odr)
-        print (order)
-        order.status = 3
-        print(order.created_at)
-        #order.save()
-        return HttpResponse(
-            "<h1>Cancelled</h1>"
-        )
+    def cancel_order_view(self, request, object_id, extra_context=None):
+        order = Order.objects.get(pk=object_id)
+        cancelled = cancel_order(order, request)
+        if cancelled == 1:
+            order.closed_at = timezone.now()
+            self.message_user(request, 'Order cancelled', messages.SUCCESS)
+        elif cancelled == -1:
+            self.message_user(request, 'You did not place this order', messages.ERROR)
+        else:
+            self.message_user(request, 'Could not cancel, It has started processing', messages.ERROR)
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.placed_by = request.user
+        form.save()
 
 
 class UserAdmin(admin.ModelAdmin):

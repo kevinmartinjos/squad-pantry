@@ -1,6 +1,12 @@
+from django import forms
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+from django.utils import timezone
+
+
+class SquadUser(AbstractUser):
+    is_kitchen_staff = models.BooleanField(default=False)
 
 
 class Dish(models.Model):
@@ -24,8 +30,8 @@ class Dish(models.Model):
 
 class Order(models.Model):
     ORDER_PLACED = 0
-    REJECTED = 1
-    ACCEPTED = 2
+    ACCEPTED = 1
+    REJECTED = 2
     CANCELLED = 3
     PROCESSING = 4
     DELIVERY = 5
@@ -37,13 +43,19 @@ class Order(models.Model):
         (PROCESSING, 'Processing'),
         (DELIVERY, 'Delivered')
     )
+    placed_by = models.ForeignKey(SquadUser, on_delete=models.CASCADE)
     status = models.IntegerField(choices=STATUS, default=ORDER_PLACED)
     dish = models.ManyToManyField(Dish, through='OrderDishRelation')
     scheduled_time = models.DateTimeField(
         blank=True, null=True,
         help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
     created_at = models.DateTimeField(auto_now_add=True)
-    closed_at = models.DateTimeField(blank=True, null=True)
+    closed_at = models.DateTimeField(blank=True, null=True, editable=False)
+
+    def clean(self):
+        closed_orders = [1, 3, 5]
+        if self.status in closed_orders:
+            self.closed_at = timezone.now()
 
 
 class OrderDishRelation(models.Model):
@@ -55,5 +67,12 @@ class OrderDishRelation(models.Model):
         unique_together = ["order", "dish"]
 
 
-class SquadUser(AbstractUser):
-    is_kitchen_staff = models.BooleanField(default=False)
+def cancel_order(order, request):
+    if request.user == order.placed_by and order.status < 2:
+        order.status = 3
+        order.save()
+        return 1
+    elif request.user != order.placed_by:
+        return -1
+    else:
+        return 0

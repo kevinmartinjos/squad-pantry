@@ -6,7 +6,7 @@
     </li>
     {% if not request.user.is_kitchen_staff %}
     <li>
-        <a href="{% url 'admin:cancel_order_view' %}" class="cancellink">{% trans "Cancel" %}</a>
+        <a href="cancel-order/" class="cancellink">{% trans "Cancel" %}</a>
     </li>
     {% endif %}
 {% endblock %}
