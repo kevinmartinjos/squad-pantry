@@ -27,7 +27,6 @@ class OrderDishInline(admin.StackedInline):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "dish":
-            print (db_field)
             kwargs["queryset"] = Dish.objects.filter(is_available=True)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -65,7 +64,13 @@ class OrderAdmin(admin.ModelAdmin):
         ] + super(OrderAdmin, self).get_urls()
 
     def cancel_order_view(self, request, object_id, extra_context=None):
-        order = Order.objects.get(pk=object_id)
+
+        try:
+            order = Order.objects.get(pk=object_id)
+        except Order.DoesNotExist:
+            self.message_user(request, 'Mentioned Order ID does not exists', messages.ERROR)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/squad_pantry_app/order'))
+
         cancelled = order.cancel_order(request.user)
         if cancelled == order.CANCEL_SUCCESS:
             self.message_user(request, 'Order cancelled', messages.SUCCESS)
@@ -75,6 +80,7 @@ class OrderAdmin(admin.ModelAdmin):
             self.message_user(request, 'Could not cancel, The order is already being processed', messages.ERROR)
         elif cancelled == order.ORDER_CLOSED_ERROR:
             self.message_user(request, 'The order is already closed', messages.ERROR)
+
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
     def save_model(self, request, obj, form, change):
