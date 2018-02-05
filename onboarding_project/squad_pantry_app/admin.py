@@ -2,7 +2,7 @@ from django import forms
 from django.conf.urls import *
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, cancel_order
 
