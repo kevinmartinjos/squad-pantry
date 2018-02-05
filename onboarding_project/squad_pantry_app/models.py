@@ -1,11 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 
 
 class SquadUser(AbstractUser):
     is_kitchen_staff = models.BooleanField(default=False)
+
 
 class Dish(models.Model):
     dish_name = models.CharField(max_length=256, unique=True)
