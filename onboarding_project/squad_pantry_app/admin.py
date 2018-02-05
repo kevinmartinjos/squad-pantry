@@ -3,11 +3,11 @@ from django.conf.urls import *
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from django.utils import timezone
-from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, cancel_order
+from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
 
 
 class BaseOrderDishFormset(BaseInlineFormSet):
+
     def clean(self):
         try:
             filled_form = [form for form in self.forms if form.cleaned_data]
@@ -25,28 +25,35 @@ class OrderDishInline(admin.StackedInline):
     formset = BaseOrderDishFormset
     extra = 1
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "dish":
+            print (db_field)
+            kwargs["queryset"] = Dish.objects.filter(is_available=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-class OrderKitchenForm(forms.ModelForm):
-    class Meta:
-        model = Order
-        exclude = ('dish', 'placed_by')
+    def get_readonly_fields(self, request, obj=None):
+        try:
+            if obj.placed_by:
+                return self.readonly_fields + ('dish', 'quantity')
+        except AttributeError:
+            return self.readonly_fields
 
 
-class OrderUserForm(forms.ModelForm):
-    class Meta:
-        model = Order
-        exclude = ('status', 'dish', 'placed_by')
+class DishAdmin(admin.ModelAdmin):
+    list_display = ['dish_name', 'dish_type', 'is_available', 'prep_time_in_minutes']
+
+    def has_add_permission(self, request):
+        return request.user.is_kitchen_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_kitchen_staff
 
 
 class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderDishInline, ]
+    exclude = ('placed_by', )
     readonly_fields = ('closed_at', )
-
-    def get_form(self, request, obj=None, **kwargs):
-        if request.user.is_kitchen_staff:
-            return OrderKitchenForm
-        else:
-            return OrderUserForm
+    list_display = ('placed_by', 'status', 'created_at')
 
     def get_urls(self):
         return [
@@ -59,33 +66,40 @@ class OrderAdmin(admin.ModelAdmin):
 
     def cancel_order_view(self, request, object_id, extra_context=None):
         order = Order.objects.get(pk=object_id)
-        cancelled = cancel_order(order, request)
-        if cancelled == 1:
-            order.closed_at = timezone.now()
-            order.save()
+        cancelled = order.cancel_order(request.user)
+        if cancelled == order.CANCEL_SUCCESS:
             self.message_user(request, 'Order cancelled', messages.SUCCESS)
-        elif cancelled == -1:
+        elif cancelled == order.WRONG_USER:
             self.message_user(request, 'You did not place this order', messages.ERROR)
-        else:
-            self.message_user(request, 'Could not cancel, It has started processing', messages.ERROR)
+        elif cancelled == order.PROCESSING_ORDER:
+            self.message_user(request, 'Could not cancel, The order is already being processed', messages.ERROR)
+        elif cancelled == order.ORDER_CLOSED_ERROR:
+            self.message_user(request, 'The order is already closed', messages.ERROR)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
     def save_model(self, request, obj, form, change):
         if not change:
             obj.placed_by = request.user
-        form.save()
+        return super(OrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
-        closed_orders = [2, 3, 5]
-        if request.user.is_kitchen_staff:
-            if obj.status in closed_orders:
-                STATUS = 'status'
-                readonly = (STATUS, )
-                if STATUS not in self.readonly_fields:
-                        return self.readonly_fields + readonly
+        user = request.user
+        if not user.is_kitchen_staff or (user.is_kitchen_staff and obj.status in obj.CLOSED_ORDERS):
+            return self.readonly_fields + ('status', )
         return self.readonly_fields
 
+    def get_queryset(self, request):
+        qs = super(OrderAdmin, self).get_queryset(request)
+        if not request.user.is_kitchen_staff:
+            return qs.filter(placed_by=request.user)
+        return qs.filter()
 
-admin.site.register(Dish)
+
+class UserAdmin(admin.ModelAdmin):
+    model = SquadUser
+    filter_horizontal = ('user_permissions', 'groups',)
+
+
+admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
-admin.site.register(SquadUser)
+admin.site.register(SquadUser, UserAdmin)
