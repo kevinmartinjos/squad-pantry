@@ -28,7 +28,7 @@ class OrderDishInline(admin.StackedInline):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "dish":
             kwargs["queryset"] = Dish.objects.filter(is_available=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+        return super(OrderDishInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
         try:
@@ -54,6 +54,9 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('closed_at', )
     list_display = ('placed_by', 'status', 'created_at')
 
+    def has_add_permission(self, request):
+        return not request.user.is_kitchen_staff
+
     def get_urls(self):
         return [
             url(
@@ -70,18 +73,16 @@ class OrderAdmin(admin.ModelAdmin):
         except Order.DoesNotExist:
             self.message_user(request, 'Mentioned Order ID does not exists', messages.ERROR)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/admin/squad_pantry_app/order'))
+        else:
+            cancelled = order.cancel_order()
+            if cancelled == order.CANCEL_SUCCESS:
+                self.message_user(request, 'Order cancelled', messages.SUCCESS)
+            elif cancelled == order.PROCESSING_ORDER:
+                self.message_user(request, 'Could not cancel, The order is already being processed', messages.ERROR)
+            elif cancelled == order.ORDER_CLOSED_ERROR:
+                self.message_user(request, 'The order is already closed', messages.ERROR)
 
-        cancelled = order.cancel_order(request.user)
-        if cancelled == order.CANCEL_SUCCESS:
-            self.message_user(request, 'Order cancelled', messages.SUCCESS)
-        elif cancelled == order.WRONG_USER:
-            self.message_user(request, 'You did not place this order', messages.ERROR)
-        elif cancelled == order.PROCESSING_ORDER:
-            self.message_user(request, 'Could not cancel, The order is already being processed', messages.ERROR)
-        elif cancelled == order.ORDER_CLOSED_ERROR:
-            self.message_user(request, 'The order is already closed', messages.ERROR)
-
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
     def save_model(self, request, obj, form, change):
         if not change:
@@ -101,11 +102,11 @@ class OrderAdmin(admin.ModelAdmin):
         return qs.filter()
 
 
-class UserAdmin(admin.ModelAdmin):
+class SquadUserAdmin(admin.ModelAdmin):
     model = SquadUser
     filter_horizontal = ('user_permissions', 'groups',)
 
 
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
-admin.site.register(SquadUser, UserAdmin)
+admin.site.register(SquadUser, SquadUserAdmin)

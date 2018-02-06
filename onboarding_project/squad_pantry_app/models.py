@@ -24,12 +24,11 @@ class Dish(models.Model):
         validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
 
     def __str__(self):
-        return self.dish_name+" ("+str(self.prep_time_in_minutes)+" Min)"
+        return "{0} ({1} Min)".format(self.dish_name, self.prep_time_in_minutes)
 
 
 class Order(models.Model):
     CANCEL_SUCCESS = 100
-    WRONG_USER = -100
     PROCESSING_ORDER = 200
     ORDER_CLOSED_ERROR = -200
 
@@ -59,21 +58,24 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True, editable=False)
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+    def save(self, *args, **kwargs):
         if self.status in self.CLOSED_ORDERS:
             self.closed_at = timezone.now()
-        super(Order, self).save(force_insert=False, force_update=False, using=None, update_fields=None)
+        super(Order, self).save(*args, **kwargs)
 
-    def cancel_order(self, user):
+    def cancel_order(self):
+        """
+        Cancel the order placed by the user and give appropriate error messages on failure
 
-        if user == self.placed_by and (self.status == self.ORDER_PLACED or self.status == self.ACCEPTED):
+        Keyword arguments:
+        self - object of the class order
+        """
+        if self.status == self.ORDER_PLACED or self.status == self.ACCEPTED:
             self.status = self.CANCELLED
             self.closed_at = timezone.now()
             self.save()
             return self.CANCEL_SUCCESS
-        elif user != self.placed_by:
-            return self.WRONG_USER
-        elif self.status == self.PROCESSING_ORDER:
+        elif self.status == self.PROCESSING:
             return self.PROCESSING_ORDER
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERROR
