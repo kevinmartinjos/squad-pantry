@@ -65,21 +65,24 @@ class Order(models.Model):
             raise ValidationError('Past dates are not allowed')
         if self.status == self.CANCELLED and self.closed_at is None:
             raise ValidationError('As a SquadPantry you can not cancel an Order')
+        if not self.pk:
+            is_cancelled = self.check_limit()
+            if is_cancelled == self.CANCEL_SUCCESS:
+                raise ValidationError('Due to heavy traffic, Squad Pantry can not accept your order.')
 
     def save(self, *args, **kwargs):
         if self.status in self.CLOSED_ORDERS:
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
-    def check_limit(self, limit, user_id):
+    def check_limit(self):
         """
         check if the number of open order has reached the limit"
 
         Keyword arguments:
         self - object of the class order
-        limit - maximum number of possible open orders
-        user_id - id of logged in user
         """
+        limit = ConfigurationSettings.objects.get(pk=1).value
         placed_orders = len(Order.objects.filter(status=self.ORDER_PLACED))
         accepted_orders = len(Order.objects.filter(status=self.ACCEPTED))
         processing_orders = len(Order.objects.filter(status=self.PROCESSING))
@@ -87,7 +90,7 @@ class Order(models.Model):
         open_orders = placed_orders + accepted_orders + processing_orders
 
         if open_orders >= limit:
-            return self.cancel_order(user_id)
+            return self.CANCEL_SUCCESS
 
     def cancel_order(self, user_id):
         """

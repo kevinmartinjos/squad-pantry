@@ -97,10 +97,6 @@ class OrderAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.placed_by = request.user
-            limit = ConfigurationSettings.objects.get(pk=1).value
-            is_cancelled = obj.check_limit(limit, request.user.id)
-            if is_cancelled == obj.CANCEL_SUCCESS:
-                self.message_user(request, 'Due to heavy traffic, Squad Pantry has cancelled your order', messages.ERROR)
         return super(OrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
