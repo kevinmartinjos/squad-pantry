@@ -5,7 +5,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
+from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, ConfigurationSettings
 
 
 class BaseOrderDishFormset(BaseInlineFormSet):
@@ -180,6 +180,20 @@ class SquadUserAdmin(UserAdmin):
     filter_horizontal = ('user_permissions', 'groups',)
 
 
+class ConfigurationSettingsAdmin(admin.ModelAdmin):
+    list_display = ('constant', 'value', )
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_kitchen_staff
+
+
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(SquadUser, SquadUserAdmin)
+admin.site.register(ConfigurationSettings, ConfigurationSettingsAdmin)

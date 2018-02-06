@@ -31,7 +31,7 @@ class Dish(models.Model):
 class Order(models.Model):
     CANCEL_SUCCESS = 100
     WRONG_USER = -100
-    PROCESSING_ORDER = 200
+    PROCESSING_ERROR = 200
     ORDER_CLOSED_ERROR = -200
 
     ORDER_PLACED = 0
@@ -65,11 +65,33 @@ class Order(models.Model):
             raise ValidationError('Past dates are not allowed')
         if self.status == self.CANCELLED and self.closed_at is None:
             raise ValidationError('As a SquadPantry you can not cancel an Order')
+        if not self.pk:
+            is_limit_exceeded = self.check_limit()
+            if is_limit_exceeded:
+                raise ValidationError('Due to heavy traffic, Squad Pantry can not accept your order.')
 
     def save(self, *args, **kwargs):
         if self.status in self.CLOSED_ORDERS:
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
+
+    @classmethod
+    def check_limit(cls):
+        """
+        check if the number of open order has reached the limit"
+
+        Keyword arguments:
+        cls - class order
+        """
+        IS_EXCEEDED = True
+        NOT_EXCEEDED = False
+
+        limit = int(ConfigurationSettings.objects.get(constant='ORDER_LIMIT').value)
+        open_orders = Order.objects.filter(status__in=[cls.ORDER_PLACED, cls.ACCEPTED, cls.PROCESSING]).count()
+
+        if open_orders >= limit:
+            return IS_EXCEEDED
+        return NOT_EXCEEDED
 
     def cancel_order(self, user_id):
         """
@@ -77,6 +99,7 @@ class Order(models.Model):
 
         Keyword arguments:
         self - object of the class order
+        user_id - id of logged in user
         """
         if user_id != self.placed_by_id:
             return self.WRONG_USER
@@ -86,7 +109,7 @@ class Order(models.Model):
             self.save()
             return self.CANCEL_SUCCESS
         elif self.status == self.PROCESSING:
-            return self.PROCESSING_ORDER
+            return self.PROCESSING_ERROR
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERROR
 
@@ -98,3 +121,11 @@ class OrderDishRelation(models.Model):
 
     class Meta:
         unique_together = ["order", "dish"]
+
+
+class ConfigurationSettings(models.Model):
+    constant = models.CharField(max_length=256, unique=True)
+    value = models.CharField(max_length=256)
+
+    def __str__(self):
+        return self.constant

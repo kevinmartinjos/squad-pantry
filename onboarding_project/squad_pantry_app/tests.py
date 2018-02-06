@@ -1,12 +1,14 @@
 from django.test import TestCase
 from django.utils import timezone
-from squad_pantry_app.models import Order, SquadUser
+from squad_pantry_app.models import Order, SquadUser, ConfigurationSettings
 
 
 class OrderTestCase(TestCase):
     def setUp(self):
-        self.user1 = SquadUser.objects.create(username="prakhar", password="testdb1", is_superuser=True, is_kitchen_staff=False)
-        self.user2 = SquadUser.objects.create(username="prakhar2", password="testdb2", is_superuser=True, is_kitchen_staff=False)
+        self.user1 = SquadUser.objects.create(username="prakhar", password="testdb1",
+                                              is_superuser=True, is_kitchen_staff=False)
+        self.user2 = SquadUser.objects.create(username="prakhar2", password="testdb2",
+                                              is_superuser=True, is_kitchen_staff=False)
 
     def test_cancel_order(self):
         order_placed = Order.objects.create(placed_by=self.user1, status=0, created_at=timezone.now())
@@ -17,5 +19,15 @@ class OrderTestCase(TestCase):
         self.assertEquals(order_placed.cancel_order(self.user1.id), Order.CANCEL_SUCCESS)
         self.assertEquals(rejected.cancel_order(self.user2.id), Order.ORDER_CLOSED_ERROR)
         self.assertEquals(cancelled.cancel_order(self.user2.id), Order.ORDER_CLOSED_ERROR)
-        self.assertEquals(processing.cancel_order(self.user1.id), Order.PROCESSING_ORDER)
+        self.assertEquals(processing.cancel_order(self.user1.id), Order.PROCESSING_ERROR)
         self.assertEquals(order_placed.cancel_order(self.user2.id), Order.WRONG_USER)
+
+    def test_check_limit(self):
+        ConfigurationSettings.objects.create(constant='ORDER_LIMIT', value=2)
+        Order.objects.create(placed_by=self.user1, status=0, created_at=timezone.now())
+
+        self.assertEquals(Order.check_limit(), False)
+
+        Order.objects.create(placed_by=self.user1, status=0, created_at=timezone.now())
+
+        self.assertEquals(Order.check_limit(), True)
