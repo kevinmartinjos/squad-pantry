@@ -75,22 +75,24 @@ class Order(models.Model):
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
-    def check_limit(self):
+    @classmethod
+    def check_limit(cls):
         """
         check if the number of open order has reached the limit"
 
         Keyword arguments:
-        self - object of the class order
+        cls - class order
         """
-        limit = ConfigurationSettings.objects.get(pk=1).value
-        placed_orders = len(Order.objects.filter(status=self.ORDER_PLACED))
-        accepted_orders = len(Order.objects.filter(status=self.ACCEPTED))
-        processing_orders = len(Order.objects.filter(status=self.PROCESSING))
+        limit = int(ConfigurationSettings.objects.get(constant='ORDER_LIMIT').value)
+        placed_orders = Order.objects.filter(status=cls.ORDER_PLACED).count()
+        accepted_orders = Order.objects.filter(status=cls.ACCEPTED).count()
+        processing_orders = Order.objects.filter(status=cls.PROCESSING).count()
 
         open_orders = placed_orders + accepted_orders + processing_orders
 
         if open_orders >= limit:
-            return self.CANCEL_SUCCESS
+            return True
+        return False
 
     def cancel_order(self, user_id):
         """
@@ -124,7 +126,7 @@ class OrderDishRelation(models.Model):
 
 class ConfigurationSettings(models.Model):
     constant = models.CharField(max_length=256, unique=True)
-    value = models.IntegerField()
+    value = models.CharField(max_length=256)
 
     def __str__(self):
         return self.constant
