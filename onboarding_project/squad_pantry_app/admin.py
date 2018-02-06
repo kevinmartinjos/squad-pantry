@@ -31,11 +31,10 @@ class OrderDishInline(admin.StackedInline):
         return super(OrderDishInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_readonly_fields(self, request, obj=None):
-        try:
-            if obj.placed_by:
-                return self.readonly_fields + ('dish', 'quantity')
-        except AttributeError:
+        if obj is None:
             return self.readonly_fields
+        else:
+            return self.readonly_fields + ('dish', 'quantity')
 
 
 class DishAdmin(admin.ModelAdmin):
