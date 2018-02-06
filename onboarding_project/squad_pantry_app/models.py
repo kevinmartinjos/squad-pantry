@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
@@ -29,6 +30,7 @@ class Dish(models.Model):
 
 class Order(models.Model):
     CANCEL_SUCCESS = 100
+    WRONG_USER = -100
     PROCESSING_ORDER = 200
     ORDER_CLOSED_ERROR = -200
 
@@ -58,19 +60,27 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True, editable=False)
 
+    def clean(self):
+        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
+            raise ValidationError('Past dates are not allowed')
+        if self.status == self.CANCELLED and self.closed_at is None:
+            raise ValidationError('As a SquadPantry you can not cancel an Order')
+
     def save(self, *args, **kwargs):
         if self.status in self.CLOSED_ORDERS:
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
-    def cancel_order(self):
+    def cancel_order(self, user_id):
         """
         Cancel the order placed by the user and give appropriate error messages on failure
 
         Keyword arguments:
         self - object of the class order
         """
-        if self.status == self.ORDER_PLACED or self.status == self.ACCEPTED:
+        if user_id != self.placed_by_id:
+            return self.WRONG_USER
+        elif self.status == self.ORDER_PLACED or self.status == self.ACCEPTED:
             self.status = self.CANCELLED
             self.closed_at = timezone.now()
             self.save()
