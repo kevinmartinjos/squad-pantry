@@ -5,7 +5,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser
+from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, ConfigurationSettings
 
 
 class BaseOrderDishFormset(BaseInlineFormSet):
@@ -97,6 +97,9 @@ class OrderAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             obj.placed_by = request.user
+            limit = ConfigurationSettings.objects.get(pk=1).value
+            obj.check_limit(limit, request.user.id)
+            self.message_user(request, 'Due to heavy traffic, Squad Pantry has cancelled your order', messages.ERROR)
         return super(OrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
@@ -180,6 +183,20 @@ class SquadUserAdmin(UserAdmin):
     filter_horizontal = ('user_permissions', 'groups',)
 
 
+class ConfigurationSettingsAdmin(admin.ModelAdmin):
+    list_display = ('constant', 'value', )
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_kitchen_staff
+
+
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(SquadUser, SquadUserAdmin)
+admin.site.register(ConfigurationSettings, ConfigurationSettingsAdmin)

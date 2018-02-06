@@ -31,7 +31,7 @@ class Dish(models.Model):
 class Order(models.Model):
     CANCEL_SUCCESS = 100
     WRONG_USER = -100
-    PROCESSING_ORDER = 200
+    PROCESSING_ERROR = 200
     ORDER_CLOSED_ERROR = -200
 
     ORDER_PLACED = 0
@@ -71,6 +71,16 @@ class Order(models.Model):
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
+    def check_limit(self, limit, user_id):
+        placed_orders = len(Order.objects.filter(status=self.ORDER_PLACED))
+        accepted_orders = len(Order.objects.filter(status=self.ACCEPTED))
+        processing_orders = len(Order.objects.filter(status=self.PROCESSING))
+
+        open_orders = placed_orders + accepted_orders + processing_orders
+
+        if open_orders >= limit:
+            self.cancel_order(user_id)
+
     def cancel_order(self, user_id):
         """
         Cancel the order placed by the user and give appropriate error messages on failure
@@ -86,7 +96,7 @@ class Order(models.Model):
             self.save()
             return self.CANCEL_SUCCESS
         elif self.status == self.PROCESSING:
-            return self.PROCESSING_ORDER
+            return self.PROCESSING_ERROR
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERROR
 
@@ -98,3 +108,11 @@ class OrderDishRelation(models.Model):
 
     class Meta:
         unique_together = ["order", "dish"]
+
+
+class ConfigurationSettings(models.Model):
+    constant = models.CharField(max_length=256, unique=True)
+    value = models.IntegerField()
+
+    def __str__(self):
+        return self.constant
