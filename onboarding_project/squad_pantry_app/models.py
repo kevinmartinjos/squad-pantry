@@ -66,8 +66,8 @@ class Order(models.Model):
         if self.status == self.CANCELLED and self.closed_at is None:
             raise ValidationError('As a SquadPantry you can not cancel an Order')
         if not self.pk:
-            is_cancelled = self.check_limit()
-            if is_cancelled == self.CANCEL_SUCCESS:
+            is_limit_exceeded = self.check_limit()
+            if is_limit_exceeded
                 raise ValidationError('Due to heavy traffic, Squad Pantry can not accept your order.')
 
     def save(self, *args, **kwargs):
@@ -83,6 +83,8 @@ class Order(models.Model):
         Keyword arguments:
         cls - class order
         """
+        IS_EXCEEDED = True
+        NOT_EXCEEDED = False
         limit = int(ConfigurationSettings.objects.get(constant='ORDER_LIMIT').value)
         placed_orders = Order.objects.filter(status=cls.ORDER_PLACED).count()
         accepted_orders = Order.objects.filter(status=cls.ACCEPTED).count()
@@ -91,8 +93,8 @@ class Order(models.Model):
         open_orders = placed_orders + accepted_orders + processing_orders
 
         if open_orders >= limit:
-            return True
-        return False
+            return IS_EXCEEDED
+        return not NOT_EXCEEDED
 
     def cancel_order(self, user_id):
         """
