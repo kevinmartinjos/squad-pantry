@@ -103,12 +103,12 @@ class OrderAdmin(admin.ModelAdmin):
         kitchen_staff = request.user.is_kitchen_staff
         make_readonly_status = kitchen_staff and obj.status in obj.CLOSED_ORDERS and obj.closed_at is not None
         # obj.closed_at should not be None so that SquadPantry should not be able to cancel the order.
-        readonly_status = not kitchen_staff or make_readonly_status
-        if obj is None and readonly_status:
+        is_closed_order = not kitchen_staff or make_readonly_status
+        if obj is None and is_closed_order:
             return self.readonly_fields + ('status', )
-        elif obj is None and not readonly_status:
+        elif obj is None and not is_closed_order:
             return self.readonly_fields
-        elif readonly_status:
+        elif is_closed_order:
             return self.readonly_fields + ('status', 'scheduled_time')
         else:
             return self.readonly_fields + ('scheduled_time', )
