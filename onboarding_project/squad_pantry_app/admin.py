@@ -57,7 +57,11 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderDishInline, ]
     exclude = ('placed_by', )
     readonly_fields = ('closed_at', )
+    list_filter = ('status', )
     list_display = ('placed_by', 'status', 'created_at', 'scheduled_time')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request):
         return not request.user.is_kitchen_staff
@@ -96,43 +100,44 @@ class OrderAdmin(admin.ModelAdmin):
         return super(OrderAdmin, self).save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
-        user = request.user
-        if obj is None:
-            if not user.is_kitchen_staff or (user.is_kitchen_staff and obj.status in obj.CLOSED_ORDERS
-                                             and obj.closed_at is not None):
-                return self.readonly_fields + ('status', )
+        kitchen_staff = request.user.is_kitchen_staff
+        make_readonly_status = kitchen_staff and obj.status in obj.CLOSED_ORDERS and obj.closed_at is not None
+        # obj.closed_at should not be None so that SquadPantry should not be able to cancel the order.
+        readonly_status = not kitchen_staff or make_readonly_status
+        if obj is None and readonly_status:
+            return self.readonly_fields + ('status', )
+        elif obj is None and not readonly_status:
             return self.readonly_fields
+        elif readonly_status:
+            return self.readonly_fields + ('status', 'scheduled_time')
         else:
-            if not user.is_kitchen_staff or (user.is_kitchen_staff and obj.status in obj.CLOSED_ORDERS
-                                             and obj.closed_at is not None):
-                return self.readonly_fields + ('status', 'scheduled_time')
             return self.readonly_fields + ('scheduled_time', )
 
     def get_queryset(self, request):
         qs = super(OrderAdmin, self).get_queryset(request)
         if not request.user.is_kitchen_staff:
             return qs.filter(placed_by=request.user)
-        return qs.filter()
+        return qs
 
 
 class UserCreationForm(forms.ModelForm):
-    password1 = forms.CharField(label='Password', widget=forms.PasswordInput())
-    password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput())
+    password = forms.CharField(label='Password', widget=forms.PasswordInput())
+    password_confirmation = forms.CharField(label='Password Confirmation', widget=forms.PasswordInput())
 
     class Meta:
         model = SquadUser
         fields = ('email', 'is_kitchen_staff')
 
-    def clean_password2(self):
-        password1 = self.cleaned_data.get("password1")
-        password2 = self.cleaned_data.get("password2")
-        if password1 and password2 and password1 != password2:
+    def clean_password_create(self):
+        password = self.cleaned_data.get("password")
+        password_confirmation = self.cleaned_data.get("password_confirmation")
+        if password and password_confirmation and password != password_confirmation:
             raise forms.ValidationError("Passwords don't match")
-        return password2
+        return password_confirmation
 
     def save(self, commit=True):
         user = super(UserCreationForm, self).save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
         return user
@@ -157,7 +162,7 @@ class SquadUserAdmin(UserAdmin):
     add_form = UserCreationForm
 
     list_display = ('username', 'is_superuser', 'is_kitchen_staff')
-    list_filter = ('is_superuser',)
+    list_filter = ('is_superuser', 'is_kitchen_staff')
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
         ('Permissions', {'fields': ('is_active', 'is_superuser', 'is_kitchen_staff', 'is_staff',
@@ -167,7 +172,7 @@ class SquadUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2')}
+            'fields': ('username', 'password', 'password_confirmation')}
          ),
     )
     search_fields = ('email',)
