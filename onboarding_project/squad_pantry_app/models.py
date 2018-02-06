@@ -72,6 +72,14 @@ class Order(models.Model):
         super(Order, self).save(*args, **kwargs)
 
     def check_limit(self, limit, user_id):
+        """
+        check if the number of open order has reached the limit"
+
+        Keyword arguments:
+        self - object of the class order
+        limit - maximum number of possible open orders
+        user_id - id of logged in user
+        """
         placed_orders = len(Order.objects.filter(status=self.ORDER_PLACED))
         accepted_orders = len(Order.objects.filter(status=self.ACCEPTED))
         processing_orders = len(Order.objects.filter(status=self.PROCESSING))
@@ -79,7 +87,7 @@ class Order(models.Model):
         open_orders = placed_orders + accepted_orders + processing_orders
 
         if open_orders >= limit:
-            self.cancel_order(user_id)
+            return self.cancel_order(user_id)
 
     def cancel_order(self, user_id):
         """
@@ -87,6 +95,7 @@ class Order(models.Model):
 
         Keyword arguments:
         self - object of the class order
+        user_id - id of logged in user
         """
         if user_id != self.placed_by_id:
             return self.WRONG_USER
