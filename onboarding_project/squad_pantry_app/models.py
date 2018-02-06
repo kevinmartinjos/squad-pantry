@@ -1,6 +1,12 @@
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+from django.utils import timezone
+
+
+class SquadUser(AbstractUser):
+    is_kitchen_staff = models.BooleanField(default=False)
 
 
 class Dish(models.Model):
@@ -19,31 +25,70 @@ class Dish(models.Model):
         validators=[MinValueValidator(1)], help_text='Time Taken to Prepare the Dish')
 
     def __str__(self):
-        return self.dish_name
+        return "{0} ({1} Min)".format(self.dish_name, self.prep_time_in_minutes)
 
 
 class Order(models.Model):
+    CANCEL_SUCCESS = 100
+    WRONG_USER = -100
+    PROCESSING_ORDER = 200
+    ORDER_CLOSED_ERROR = -200
+
     ORDER_PLACED = 0
-    REJECTED = 1
-    ACCEPTED = 2
+    ACCEPTED = 1
+    REJECTED = 2
     CANCELLED = 3
     PROCESSING = 4
-    DELIVERY = 5
+    DELIVERED = 5
+
+    CLOSED_ORDERS = [REJECTED, CANCELLED, DELIVERED]
+
     STATUS = (
         (ORDER_PLACED, 'Order Placed'),
         (REJECTED, 'Rejected'),
         (ACCEPTED, 'Accepted'),
         (CANCELLED, 'Cancelled'),
         (PROCESSING, 'Processing'),
-        (DELIVERY, 'Delivered')
+        (DELIVERED, 'Delivered')
     )
+    placed_by = models.ForeignKey(SquadUser, on_delete=models.CASCADE)
     status = models.IntegerField(choices=STATUS, default=ORDER_PLACED)
     dish = models.ManyToManyField(Dish, through='OrderDishRelation')
     scheduled_time = models.DateTimeField(
         blank=True, null=True,
         help_text='Schedule Your Order. Leave it blank for getting your order as soon as possible')
     created_at = models.DateTimeField(auto_now_add=True)
-    closed_at = models.DateTimeField(blank=True, null=True)
+    closed_at = models.DateTimeField(blank=True, null=True, editable=False)
+
+    def clean(self):
+        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
+            raise ValidationError('Past dates are not allowed')
+        if self.status == self.CANCELLED and self.closed_at is None:
+            raise ValidationError('As a SquadPantry you can not cancel an Order')
+
+    def save(self, *args, **kwargs):
+        if self.status in self.CLOSED_ORDERS:
+            self.closed_at = timezone.now()
+        super(Order, self).save(*args, **kwargs)
+
+    def cancel_order(self, user_id):
+        """
+        Cancel the order placed by the user and give appropriate error messages on failure
+
+        Keyword arguments:
+        self - object of the class order
+        """
+        if user_id != self.placed_by_id:
+            return self.WRONG_USER
+        elif self.status == self.ORDER_PLACED or self.status == self.ACCEPTED:
+            self.status = self.CANCELLED
+            self.closed_at = timezone.now()
+            self.save()
+            return self.CANCEL_SUCCESS
+        elif self.status == self.PROCESSING:
+            return self.PROCESSING_ORDER
+        elif self.status in self.CLOSED_ORDERS:
+            return self.ORDER_CLOSED_ERROR
 
 
 class OrderDishRelation(models.Model):
@@ -53,11 +98,3 @@ class OrderDishRelation(models.Model):
 
     class Meta:
         unique_together = ["order", "dish"]
-
-
-class SquadUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_kitchen_staff = models.BooleanField(default=False)
-
-    def __str__(self):
-        return str(self.user)
