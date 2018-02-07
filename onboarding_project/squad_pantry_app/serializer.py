@@ -32,7 +32,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         scheduled_time = self.initial_data.get('scheduled_time')
         logged_in_user = self._context['request']._user
-        order = Order.place_order(scheduled_time, logged_in_user, validated_data)
+        order = Order.place_order(scheduled_time, logged_in_user, validated_data['orderdishrelation_set'])
         return order
 
     def update(self, instance, validated_data):
