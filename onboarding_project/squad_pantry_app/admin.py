@@ -201,5 +201,5 @@ class PerformanceMetricAdmin(admin.ModelAdmin):
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(SquadUser, SquadUserAdmin)
-admin.site.register(PerformanceMetrics)
+admin.site.register(PerformanceMetrics, PerformanceMetricAdmin)
 admin.site.register(ConfigurationSettings, ConfigurationSettingsAdmin)
