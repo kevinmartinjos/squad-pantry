@@ -111,7 +111,7 @@ class Order(models.Model):
         elif self.status == self.PROCESSING:
             return self.PROCESSING_ERROR
         elif self.status in self.CLOSED_ORDERS:
-            return self.ORDER_CLOSED_ERROR
+            return self.ORDER_CLOSED_ERRORcl
 
     def get_orders(self):
         return Order.objects.filter(dish__order=self)
@@ -138,6 +138,14 @@ class PerformanceMetrics(models.Model):
     day = models.DateField(auto_now_add=True, unique=True)
     average_throughput = models.DecimalField(max_digits=10, decimal_places=5, editable=False)
     average_turnaround_time = models.TimeField(editable=False)
+
+    @classmethod
+    def calculate_throughput(cls):
+        return 4
+
+    @classmethod
+    def calculate_turnaround_time(cls):
+        return 5
 
     def __str__(self):
         return str(self.day)

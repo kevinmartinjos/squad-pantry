@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
+from onboarding_project.squad_pantry_app.models import PerformanceMetrics
 
 app = Celery('tasks', broker='pyamqp://guest@localhost//')
 app.config_from_object('celeryconfig')
@@ -8,18 +9,10 @@ app.config_from_object('celeryconfig')
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
         crontab(hour=11, minute=59),
-        throughput.s(),
-    )
-
-    sender.add_periodic_task(
-        crontab(hour=11, minute=59),
-        turnaround_time.s(),
+        get_avg_performance_metrics.s(),
     )
 
 @app.task
-def throughput():
-    return 4
-
-@app.task
-def turnaround_time():
-    return 5
+def get_avg_performance_metrics():
+    throughput = PerformanceMetrics.calculate_throughput()
+    return throughput
