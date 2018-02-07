@@ -14,5 +14,4 @@ def setup_periodic_tasks(sender, **kwargs):
 
 @app.task
 def get_avg_performance_metrics():
-    throughput = PerformanceMetrics.calculate_throughput()
-    return throughput
+    PerformanceMetrics.calculate_avg_performance_metrics()

@@ -194,7 +194,7 @@ class ConfigurationSettingsAdmin(admin.ModelAdmin):
 
 
 class PerformanceMetricAdmin(admin.ModelAdmin):
-    list_display = ('day', 'average_throughput', 'average_turnaround_time', )
+    list_display = ('created_at', 'average_throughput', 'average_turnaround_time', )
     readonly_fields = ('average_throughput', 'average_turnaround_time', )
 
 

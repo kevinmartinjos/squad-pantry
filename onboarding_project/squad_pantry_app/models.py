@@ -1,8 +1,9 @@
-from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
-from django.utils import timezone
+
 
 
 class SquadUser(AbstractUser):
@@ -135,17 +136,25 @@ class ConfigurationSettings(models.Model):
 
 
 class PerformanceMetrics(models.Model):
-    day = models.DateField(auto_now_add=True, unique=True)
-    average_throughput = models.DecimalField(max_digits=10, decimal_places=5, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, unique=True)
+    average_throughput = models.IntegerField(editable=False)
     average_turnaround_time = models.TimeField(editable=False)
 
     @classmethod
     def calculate_throughput(cls):
+
         return 4
 
     @classmethod
     def calculate_turnaround_time(cls):
         return 5
 
+    @classmethod
+    def calculate_avg_performance_metrics(cls):
+        turnaround_time = PerformanceMetrics.calculate_turnaround_time()
+        throughput = PerformanceMetrics.calculate_throughput()
+        PerformanceMetrics.objects.create(average_throughput=throughput, average_turnaround_time=turnaround_time)
+        return 6
+
     def __str__(self):
-        return str(self.day)
+        return str(self.created_at)
