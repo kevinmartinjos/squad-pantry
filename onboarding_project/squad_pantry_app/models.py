@@ -132,3 +132,12 @@ class ConfigurationSettings(models.Model):
 
     def __str__(self):
         return self.constant
+
+
+class PerformanceMetrics(models.Model):
+    day = models.DateField(auto_now_add=True, unique=True)
+    average_throughput = models.DecimalField(max_digits=10, decimal_places=5, editable=False)
+    average_turnaround_time = models.TimeField(editable=False)
+
+    def __str__(self):
+        return str(self.day)
