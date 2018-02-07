@@ -1,5 +1,7 @@
+import logging
+
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction, DatabaseError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.utils import timezone
@@ -113,8 +115,23 @@ class Order(models.Model):
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERROR
 
-    def get_orders(self):
-        return Order.objects.filter(dish__order=self)
+    @classmethod
+    def place_order(cls, scheduled_time, logged_in_user, validated_data):
+        try:
+            with transaction.atomic():
+                order = Order.objects.create(placed_by=logged_in_user, scheduled_time=scheduled_time,
+                                             created_at=timezone.now(), closed_at=None)
+
+                order_dish_objects = [
+                    OrderDishRelation(order_id=order.id, dish_id=od_obj['dish'].id, quantity=od_obj['quantity'])
+                    for od_obj in validated_data['orderdishrelation_set']
+                ]
+
+                OrderDishRelation.objects.bulk_create(order_dish_objects)
+        except DatabaseError:
+            logging.getLogger(__name__).error('DatabaseError Exception caught!')
+        else:
+            return order
 
 
 class OrderDishRelation(models.Model):

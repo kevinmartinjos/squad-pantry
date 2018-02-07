@@ -31,28 +31,10 @@ class OrderSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-
-        if 'schedule_time' in self.initial_data:
-            scheduled_time = self.initial_data['schedule_time']
-        else:
-            scheduled_time = None
-
+        scheduled_time = self.initial_data.get('scheduled_time')
         logged_in_user = self._context['request']._user
-        try:
-            with transaction.atomic():
-                order = Order.objects.create(placed_by=logged_in_user, scheduled_time=scheduled_time,
-                                             created_at=timezone.now(), closed_at=None)
-
-                order_dish_objects = [
-                    OrderDishRelation(order_id=order.id, dish_id=od_obj['dish'].id, quantity=od_obj['quantity'])
-                    for od_obj in validated_data['orderdishrelation_set']
-                ]
-
-                OrderDishRelation.objects.bulk_create(order_dish_objects)
-        except DatabaseError:
-            logging.getLogger(__name__).error('DatabaseError Exception caught!')
-        else:
-            return order
+        order = Order.place_order(scheduled_time, logged_in_user, validated_data)
+        return order
 
     def update(self, instance, validated_data):
         instance.status = instance.CANCELLED
