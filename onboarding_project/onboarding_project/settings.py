@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'squad_pantry_app'
+    'squad_pantry_app',
+    'rest_framework',
 ]
 
 AUTH_USER_MODEL = 'squad_pantry_app.SquadUser'
@@ -53,6 +54,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'onboarding_project.urls'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
 
 TEMPLATES = [
     {

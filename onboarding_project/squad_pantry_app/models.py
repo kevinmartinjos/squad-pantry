@@ -113,6 +113,9 @@ class Order(models.Model):
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERROR
 
+    def get_orders(self):
+        return Order.objects.filter(dish__order=self)
+
 
 class OrderDishRelation(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
