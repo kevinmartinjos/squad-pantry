@@ -25,11 +25,19 @@ class OrderSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if len(attrs['orderdishrelation_set']) < 1:
             raise ValidationError('Order at least one dish')
+
         return attrs
 
     def create(self, validated_data):
-        data = self.initial_data
-        order = Order.objects.create(placed_by=validated_data['placed_by'], scheduled_time=data['scheduled_time'])
+
+        if 'schedule_time' in self.initial_data:
+            scheduled_time = self.initial_data['schedule_time']
+        else:
+            scheduled_time = None
+
+        logged_in_user = self._context['request']._user
+        order = Order.objects.create(placed_by=logged_in_user, scheduled_time=scheduled_time,
+                                     created_at=timezone.now(), closed_at=None)
 
         for od_obj in validated_data['orderdishrelation_set']:
             order_dish = OrderDishRelation.objects.create(order_id=order.id, dish_id=od_obj['dish'].id,
@@ -38,7 +46,6 @@ class OrderSerializer(serializers.ModelSerializer):
         return order
 
     def update(self, instance, validated_data):
-        print(validated_data)
         instance.status = instance.CANCELLED
         instance.closed_at = timezone.now()
         instance.save()
