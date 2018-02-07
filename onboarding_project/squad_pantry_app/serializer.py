@@ -27,7 +27,6 @@ class OrderSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if len(attrs['orderdishrelation_set']) < 1:
             raise ValidationError('Order at least one dish')
-
         return attrs
 
     def create(self, validated_data):
