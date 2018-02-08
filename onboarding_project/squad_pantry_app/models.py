@@ -4,6 +4,14 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
+import logging
+
+from django.core.exceptions import ValidationError
+from django.db import models, transaction, DatabaseError, IntegrityError
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
+from django.db.transaction import TransactionManagementError
+from django.utils import timezone
 
 
 class SquadUser(AbstractUser):
@@ -114,8 +122,23 @@ class Order(models.Model):
         elif self.status in self.CLOSED_ORDERS:
             return self.ORDER_CLOSED_ERRORcl
 
-    def get_orders(self):
-        return Order.objects.filter(dish__order=self)
+    @classmethod
+    def place_order(cls, scheduled_time, logged_in_user, order_dish_relation_set):
+        try:
+            with transaction.atomic():
+                order = Order.objects.create(placed_by=logged_in_user, scheduled_time=scheduled_time,
+                                             created_at=timezone.now(), closed_at=None)
+
+                order_dish_objects = [
+                    OrderDishRelation(order_id=order.id, dish_id=od_obj['dish'].id, quantity=od_obj['quantity'])
+                    for od_obj in order_dish_relation_set
+                ]
+
+                OrderDishRelation.objects.bulk_create(order_dish_objects)
+        except DatabaseError:
+            logging.exception("message")
+        else:
+            return order
 
 
 class OrderDishRelation(models.Model):
@@ -138,7 +161,7 @@ class ConfigurationSettings(models.Model):
 class PerformanceMetrics(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, unique=True)
     average_throughput = models.IntegerField(editable=False)
-    average_turnaround_time = models.DateTimeField(editable=False)
+    average_turnaround_time = models.TimeField(editable=False)
 
     @classmethod
     def calculate_throughput(cls):
@@ -156,15 +179,12 @@ class PerformanceMetrics(models.Model):
         completed_orders_curr_day = completed_orders.filter(created_at__range=(start_date_time, timezone.now()))
         completed_orders_curr_day_count = completed_orders_curr_day.count()
 
-        # turnaround_time = [(obj.closed_at-obj.created_at).seconds for obj in completed_orders_curr_day]
-        # total_turnaround_time = sum(turnaround_time)
-
-        # total_turnaround_time = 0
-        # for obj in completed_orders_curr_day:
-        #     total_turnaround_time += (obj.closed_at - obj.created_at).seconds
+        total_turnaround_time = 0
+        for obj in completed_orders_curr_day:
+            total_turnaround_time += (obj.closed_at - obj.created_at).total_seconds()
 
         average_turnaround_time = total_turnaround_time/completed_orders_curr_day_count
-        return str(datetime.timedelta(seconds=average_turnaround_time))
+        return datetime.timedelta(seconds=average_turnaround_time)
 
     @classmethod
     def calculate_avg_performance_metrics(cls):

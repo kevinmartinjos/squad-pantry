@@ -193,13 +193,13 @@ class ConfigurationSettingsAdmin(admin.ModelAdmin):
         return request.user.is_superuser or request.user.is_kitchen_staff
 
 
-class PerformanceMetricAdmin(admin.ModelAdmin):
-    list_display = ('created_at', 'average_throughput', 'average_turnaround_time', )
-    readonly_fields = ('average_throughput', 'average_turnaround_time', )
+# class PerformanceMetricAdmin(admin.ModelAdmin):
+#     list_display = ('created_at', 'average_throughput', 'average_turnaround_time', )
+#     readonly_fields = ('average_throughput', 'average_turnaround_time', )
 
 
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(SquadUser, SquadUserAdmin)
-admin.site.register(PerformanceMetrics, PerformanceMetricAdmin)
+#admin.site.register(PerformanceMetrics, PerformanceMetricAdmin)
 admin.site.register(ConfigurationSettings, ConfigurationSettingsAdmin)

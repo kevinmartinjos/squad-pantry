@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
 
-class IsUser(permissions.BasePermission):
+class IsUserWhoPlacedOrder(permissions.BasePermission):
     """
        Custom permission to only allow owners of an object to edit it.
     """
