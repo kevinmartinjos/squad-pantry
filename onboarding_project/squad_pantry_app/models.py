@@ -1,17 +1,10 @@
-import datetime
-from django.db import models
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
 import logging
-
+import datetime
+from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.db import models, transaction, DatabaseError, IntegrityError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
-from django.db.transaction import TransactionManagementError
-from django.utils import timezone
+from django.db import models, transaction, DatabaseError
 
 
 class SquadUser(AbstractUser):
