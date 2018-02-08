@@ -9,11 +9,11 @@
 
 {% block breadcrumbs %}
 
-    <div class="breadcrumbs">
     {% if request.user.is_kitchen_staff %}
+    <div class="breadcrumbs">
         <a href="{% url 'squad_pantry_app:metrics' %}">{% trans 'Metrics' %}</a>
-    {% endif %}
     </div>
+    {% endif %}
 
 {% endblock %}
 

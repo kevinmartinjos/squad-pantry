@@ -1,5 +1,5 @@
 import logging
-import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
@@ -154,36 +154,57 @@ class ConfigurationSettings(models.Model):
 class PerformanceMetrics(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, unique=True)
     average_throughput = models.IntegerField(editable=False)
-    average_turnaround_time = models.TimeField(editable=False)
+    average_turnaround_time = models.CharField(max_length=256, editable=False)
 
     @classmethod
-    def calculate_throughput(cls):
-        closed_orders = PerformanceMetrics.objects.exclude(closed_at__isnull=True)
+    def calculate_avg_performance_metrics(cls):
         if PerformanceMetrics.objects.all().count() < 1:
-            return closed_orders.count()
+            completed_orders_curr_day = Order.objects.filter(
+                status=Order.DELIVERED,
+                closed_at__isnull=False
+            )
         else:
             start_date_time = PerformanceMetrics.objects.latest('id').created_at
-            return closed_orders.filter(created_at__range=(start_date_time, timezone.now)).count()
+            completed_orders_curr_day = Order.objects.filter(
+                status=Order.DELIVERED,
+                closed_at__isnull=False,
+                created_at__range=(start_date_time, timezone.now())
+            )
+        throughput = len(completed_orders_curr_day)
 
-    @classmethod
-    def calculate_turnaround_time(cls):
-        completed_orders = PerformanceMetrics.objects.filter(status=Order.DELIVERED).exclude(closed_at__isnull=True)
-        start_date_time = PerformanceMetrics.objects.latest('id').created_at
-        completed_orders_curr_day = completed_orders.filter(created_at__range=(start_date_time, timezone.now()))
-        completed_orders_curr_day_count = completed_orders_curr_day.count()
+        if throughput == 0:
+            return 0, '00:00:00.00'
 
         total_turnaround_time = 0
         for obj in completed_orders_curr_day:
             total_turnaround_time += (obj.closed_at - obj.created_at).total_seconds()
 
-        average_turnaround_time = total_turnaround_time/completed_orders_curr_day_count
-        return datetime.timedelta(seconds=average_turnaround_time)
+        average_turnaround_time = total_turnaround_time/throughput
+        return timedelta(seconds=average_turnaround_time), throughput
 
     @classmethod
-    def calculate_avg_performance_metrics(cls):
-        turnaround_time = PerformanceMetrics.calculate_turnaround_time()
-        throughput = PerformanceMetrics.calculate_throughput()
+    def create_avg_performance_metrics(cls):
+        turnaround_time, throughput = PerformanceMetrics.calculate_avg_performance_metrics()
+        print(turnaround_time, throughput)
         PerformanceMetrics.objects.create(average_throughput=throughput, average_turnaround_time=turnaround_time)
+
+    @classmethod
+    def get_metrics_data(cls, start_date, end_date):
+        metrics = PerformanceMetrics.objects.filter(created_at__range=(start_date, end_date))
+        num_obj = len(metrics)
+        total_throughput = 0
+        total_turnaround_time = 0
+        for obj in metrics:
+            total_throughput += obj.average_throughput
+            time = datetime.strptime(obj.average_turnaround_time, "%H:%M:%S.%f")
+            total_turnaround_time += timedelta(hours=time.hour, minutes=time.minute,
+                                               seconds=time.second).total_seconds()
+        if total_throughput == 0:
+            return 0, 0
+        throughput = total_throughput/num_obj
+        turnaround_time = total_turnaround_time/num_obj
+
+        return throughput, str(timedelta(seconds=turnaround_time))
 
     def __str__(self):
         return str(self.created_at)
