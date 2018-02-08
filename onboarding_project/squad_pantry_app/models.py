@@ -142,8 +142,12 @@ class PerformanceMetrics(models.Model):
 
     @classmethod
     def calculate_throughput(cls):
-
-        return 4
+        closed_orders = PerformanceMetrics.objects.exclude(closed_at__isnull=True)
+        if PerformanceMetrics.objects.all().count() < 1:
+            return closed_orders.count()
+        else:
+            start_date_time = PerformanceMetrics.objects.latest('id').created_at
+            return closed_orders.filter(created_at__range=(start_date_time, timezone.now)).count()
 
     @classmethod
     def calculate_turnaround_time(cls):
@@ -154,7 +158,6 @@ class PerformanceMetrics(models.Model):
         turnaround_time = PerformanceMetrics.calculate_turnaround_time()
         throughput = PerformanceMetrics.calculate_throughput()
         PerformanceMetrics.objects.create(average_throughput=throughput, average_turnaround_time=turnaround_time)
-        return 6
 
     def __str__(self):
         return str(self.created_at)
