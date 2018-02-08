@@ -1,9 +1,9 @@
+import datetime
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
-
 
 
 class SquadUser(AbstractUser):
@@ -138,7 +138,7 @@ class ConfigurationSettings(models.Model):
 class PerformanceMetrics(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, unique=True)
     average_throughput = models.IntegerField(editable=False)
-    average_turnaround_time = models.TimeField(editable=False)
+    average_turnaround_time = models.DateTimeField(editable=False)
 
     @classmethod
     def calculate_throughput(cls):
@@ -151,7 +151,20 @@ class PerformanceMetrics(models.Model):
 
     @classmethod
     def calculate_turnaround_time(cls):
-        return 5
+        completed_orders = PerformanceMetrics.objects.filter(status=Order.DELIVERED).exclude(closed_at__isnull=True)
+        start_date_time = PerformanceMetrics.objects.latest('id').created_at
+        completed_orders_curr_day = completed_orders.filter(created_at__range=(start_date_time, timezone.now()))
+        completed_orders_curr_day_count = completed_orders_curr_day.count()
+
+        # turnaround_time = [(obj.closed_at-obj.created_at).seconds for obj in completed_orders_curr_day]
+        # total_turnaround_time = sum(turnaround_time)
+
+        # total_turnaround_time = 0
+        # for obj in completed_orders_curr_day:
+        #     total_turnaround_time += (obj.closed_at - obj.created_at).seconds
+
+        average_turnaround_time = total_turnaround_time/completed_orders_curr_day_count
+        return str(datetime.timedelta(seconds=average_turnaround_time))
 
     @classmethod
     def calculate_avg_performance_metrics(cls):
