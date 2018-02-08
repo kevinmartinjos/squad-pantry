@@ -4,9 +4,6 @@
 {% block extrastyle %}
     {{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static 'admin/css/forms.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'bootstrap.css' %}" />
-    <script src="{% static 'jquery-3.2.1.slim.min.js' %}" ></script>
-    <script src="{% static 'popper.min.js' %}" ></script>
 {% endblock %}
 
 {% block content %}
@@ -14,25 +11,21 @@
     {{ block.super }}
 
     <div class="container">
-        <form class="form" method="get">
-            <div class="form-row" align="center">
-                <div class="col">
-                    <label class="required">Start Date:</label>
-                    <input type="date" class="vDateField" name="start_date" value="">
-                </div>
+        <form class="inline-group" align="center" method="get">
 
-                <div class="col">
-                    <label class="required">End Date:</label>
-                    <input type="date" name="end_data" value="">
-                </div>
-            </div>
+            <label class="required">Start Date:</label>
+            <input type="date" class="vDateField" name="start_date" value="">
+
+            <label class="required">End Date:</label>
+            <input type="date" class="vDateField" name="end_data" value="">
+
             <div class="form-row submit-row">
-                <input type="submit" name="calculate" value="calculate">
+                <input type="submit" name="calculate" value="Calculate">
             </div>
         </form>
 
         {% if average_throughput and average_turnaround_time %}
-        <div class="jumbotron">
+        <div class="jumbotron" align="center">
             <h3>{{ average_throughput }}</h3>
             <h3>{{ average_turnaround_time }}</h3>
         </div>
