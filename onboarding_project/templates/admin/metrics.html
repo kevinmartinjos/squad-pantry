@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/forms.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'bootstrap.css' %}" />
+    <script src="{% static 'jquery-3.2.1.slim.min.js' %}" ></script>
+    <script src="{% static 'popper.min.js' %}" ></script>
+{% endblock %}
+
+{% block content %}
+
+    {{ block.super }}
+
+    <div class="container">
+        <form class="form" method="get">
+            <div class="form-row" align="center">
+                <div class="col">
+                    <label class="required">Start Date:</label>
+                    <input type="date" class="vDateField" name="start_date" value="">
+                </div>
+
+                <div class="col">
+                    <label class="required">End Date:</label>
+                    <input type="date" name="end_data" value="">
+                </div>
+            </div>
+            <div class="form-row submit-row">
+                <input type="submit" name="calculate" value="calculate">
+            </div>
+        </form>
+
+        {% if average_throughput and average_turnaround_time %}
+        <div class="jumbotron">
+            <h3>{{ average_throughput }}</h3>
+            <h3>{{ average_turnaround_time }}</h3>
+        </div>
+        {% endif %}
+    </div>
+
+
+{% endblock %}

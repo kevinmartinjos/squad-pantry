@@ -1,6 +1,6 @@
 from django.conf.urls import url
-from rest_framework.urlpatterns import format_suffix_patterns
-from squad_pantry_app.views import OrderViewSet
+from django.contrib import admin
+from squad_pantry_app.views import OrderViewSet, MetricView
 
 order_list = OrderViewSet.as_view({
     'get': 'list',
@@ -15,6 +15,8 @@ cancel_order = OrderViewSet.as_view({
 })
 
 urlpatterns = [
+    url(r'^admin/', admin.site.urls),
+    url(r'^admin/metrics', MetricView.as_view()),
     url(r'^orders/$', order_list, name='order-list'),
     url(r'^orders/(?P<pk>[0-9]+)/$', order_detail, name='order-detail'),
     url(r'^orders/(?P<pk>[0-9]+)/cancel-order$', cancel_order, name='cancel-order'),

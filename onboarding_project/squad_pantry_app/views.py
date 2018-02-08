@@ -1,3 +1,5 @@
+from django.shortcuts import render
+from django.views import View
 from squad_pantry_app.models import Order, OrderDishRelation
 from squad_pantry_app.serializer import OrderSerializer
 from squad_pantry_app.permissions import IsUserWhoPlacedOrder
@@ -13,3 +15,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Order.objects.filter(placed_by=self.request.user)
+
+
+class MetricView(View):
+    def get(self, request):
+
+        return render(request, 'admin/metrics.html')
