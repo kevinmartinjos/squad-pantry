@@ -129,10 +129,8 @@ class Order(models.Model):
                 ]
 
                 OrderDishRelation.objects.bulk_create(order_dish_objects)
-        except IntegrityError:
-            logging.getLogger(__name__).error('Non Nullable field has Null value')
-        except TransactionManagementError:
-            logging.getLogger(__name__).error('Tried to run queries before the rollback')
+        except DatabaseError:
+            logging.exception("message")
         else:
             return order
 
