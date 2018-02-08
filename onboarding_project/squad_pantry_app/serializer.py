@@ -1,5 +1,7 @@
+import logging
 from django.utils import timezone
 from rest_framework import serializers
+from django.db import transaction, DatabaseError
 from rest_framework.exceptions import ValidationError
 from squad_pantry_app.models import Order, OrderDishRelation
 
@@ -28,17 +30,12 @@ class OrderSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        data = self.initial_data
-        order = Order.objects.create(placed_by=validated_data['placed_by'], scheduled_time=data['scheduled_time'])
-
-        for od_obj in validated_data['orderdishrelation_set']:
-            order_dish = OrderDishRelation.objects.create(order_id=order.id, dish_id=od_obj['dish'].id,
-                                                          quantity=od_obj['quantity'])
-            order_dish.save()
+        scheduled_time = self.initial_data.get('scheduled_time')
+        logged_in_user = self._context['request']._user
+        order = Order.place_order(scheduled_time, logged_in_user, validated_data['orderdishrelation_set'])
         return order
 
     def update(self, instance, validated_data):
-        print(validated_data)
         instance.status = instance.CANCELLED
         instance.closed_at = timezone.now()
         instance.save()

@@ -8,12 +8,14 @@ order_list = OrderViewSet.as_view({
 })
 order_detail = OrderViewSet.as_view({
     'get': 'retrieve',
+})
+cancel_order = OrderViewSet.as_view({
+    'get': 'retrieve',
     'put': 'update',
 })
 
 urlpatterns = [
     url(r'^orders/$', order_list, name='order-list'),
     url(r'^orders/(?P<pk>[0-9]+)/$', order_detail, name='order-detail'),
+    url(r'^orders/(?P<pk>[0-9]+)/cancel-order$', cancel_order, name='cancel-order'),
 ]
-
-urlpatterns = format_suffix_patterns(urlpatterns)
