@@ -1,6 +1,3 @@
-from django.core.exceptions import ValidationError
-from django.forms import forms
-from django.http import HttpResponse
 from django.shortcuts import render
 from django.views import View
 from squad_pantry_app.models import Order, OrderDishRelation, PerformanceMetrics
@@ -34,7 +31,9 @@ class MetricView(View):
             if throughput == 0:
                 error = "No Records Found"
                 return render(request, self.template_name, {'error': error})
-            return render(request, self.template_name, {'throughput': throughput, 'turnaround_time': turnaround_time,
-                                                        'start': request.GET['start_date'],
-                                                        'end': request.GET['end_date']})
+            else:
+                return render(request, self.template_name, {'throughput': throughput,
+                                                            'turnaround_time': turnaround_time,
+                                                            'start': request.GET['start_date'],
+                                                            'end': request.GET['end_date']})
         return render(request, self.template_name)

@@ -25,6 +25,8 @@ SECRET_KEY = '61#%k=fgda^-_#!41w21_=@$qwbtk@6#a$3#qu0fiw@4h=_zbt'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGIN_URL = '/admin/login/'
+
 ALLOWED_HOSTS = []
 
 # Application definition

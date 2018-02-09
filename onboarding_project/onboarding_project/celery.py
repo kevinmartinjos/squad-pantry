@@ -18,7 +18,7 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # app.config_from_object('celeryconfig')
 
-#app.autodiscover_tasks()
+# app.autodiscover_tasks()
 
 app.conf.update(
     result_expires=10,

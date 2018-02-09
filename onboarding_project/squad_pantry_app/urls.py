@@ -1,5 +1,6 @@
 from django.conf.urls import url
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from squad_pantry_app.views import OrderViewSet, MetricView
 
 app_name = 'squad_pantry_app'
@@ -17,7 +18,7 @@ cancel_order = OrderViewSet.as_view({
 })
 
 urlpatterns = [
-    url(r'^admin/metrics', MetricView.as_view(), name='metrics'),
+    url(r'^admin/metrics', login_required(MetricView.as_view()), name='metrics'),
     url(r'^orders/$', order_list, name='order-list'),
     url(r'^orders/(?P<pk>[0-9]+)/$', order_detail, name='order-detail'),
     url(r'^orders/(?P<pk>[0-9]+)/cancel-order$', cancel_order, name='cancel-order'),
