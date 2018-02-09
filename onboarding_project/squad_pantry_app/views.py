@@ -27,7 +27,6 @@ class MetricView(View):
                 return render(request, self.template_name, {'error': error})
             throughput, turnaround_time = PerformanceMetrics.get_metrics_data(request.GET['start_date'],
                                                                               request.GET['end_date'])
-            print(throughput, turnaround_time)
             if throughput == 0:
                 error = "No Records Found"
                 return render(request, self.template_name, {'error': error})

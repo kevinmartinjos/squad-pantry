@@ -1,5 +1,4 @@
 from django.conf.urls import url
-from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from squad_pantry_app.views import OrderViewSet, MetricView
 

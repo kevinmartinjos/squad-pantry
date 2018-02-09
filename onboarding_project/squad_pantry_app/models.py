@@ -1,6 +1,7 @@
 import logging
-from datetime import datetime, timedelta
+from django.db.models import Sum
 from django.utils import timezone
+from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
@@ -113,7 +114,7 @@ class Order(models.Model):
         elif self.status == self.PROCESSING:
             return self.PROCESSING_ERROR
         elif self.status in self.CLOSED_ORDERS:
-            return self.ORDER_CLOSED_ERRORcl
+            return self.ORDER_CLOSED_ERROR
 
     @classmethod
     def place_order(cls, scheduled_time, logged_in_user, order_dish_relation_set):
@@ -154,29 +155,31 @@ class ConfigurationSettings(models.Model):
 class PerformanceMetrics(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, unique=True)
     average_throughput = models.IntegerField(editable=False)
-    average_turnaround_time = models.CharField(max_length=256, editable=False)
+    average_turnaround_time = models.DurationField(editable=False)
 
     @classmethod
     def calculate_avg_performance_metrics(cls):
+        """
+        Calculate the performance metrics as per scheduled, from last entered entry in database to now.
+
+        """
         if PerformanceMetrics.objects.all().count() < 1:
-            completed_orders_curr_day = Order.objects.filter(
-                status=Order.DELIVERED,
-                closed_at__isnull=False
+            completed_orders_curr_range = Order.objects.filter(
+                status=Order.DELIVERED
             )
         else:
             start_date_time = PerformanceMetrics.objects.latest('id').created_at
-            completed_orders_curr_day = Order.objects.filter(
+            completed_orders_curr_range = Order.objects.filter(
                 status=Order.DELIVERED,
-                closed_at__isnull=False,
                 created_at__range=(start_date_time, timezone.now())
             )
-        throughput = len(completed_orders_curr_day)
+        throughput = len(completed_orders_curr_range)
 
         if throughput == 0:
-            return 0, '00:00:00.00'
+            return timedelta(seconds=0), 0
 
         total_turnaround_time = 0
-        for obj in completed_orders_curr_day:
+        for obj in completed_orders_curr_range:
             total_turnaround_time += (obj.closed_at - obj.created_at).total_seconds()
 
         average_turnaround_time = total_turnaround_time/throughput
@@ -184,25 +187,33 @@ class PerformanceMetrics(models.Model):
 
     @classmethod
     def create_avg_performance_metrics(cls):
+        """
+        Insert the calculated metrics into Database
+
+        """
         turnaround_time, throughput = PerformanceMetrics.calculate_avg_performance_metrics()
-        print(turnaround_time, throughput)
         PerformanceMetrics.objects.create(average_throughput=throughput, average_turnaround_time=turnaround_time)
 
     @classmethod
     def get_metrics_data(cls, start_date, end_date):
+        """
+        Get average metrics for the given interval
+
+        Keyword arguments:
+        start_date - Metrics needed from this date
+        end_date - Metrics needed till this date
+        """
         metrics = PerformanceMetrics.objects.filter(created_at__range=(start_date, end_date))
-        num_obj = len(metrics)
-        total_throughput = 0
+        num_metric_records = len(metrics)
+        total_throughput = metrics.aggregate(Sum('average_throughput'))['average_throughput__sum']
         total_turnaround_time = 0
         for obj in metrics:
-            total_throughput += obj.average_throughput
-            time = datetime.strptime(obj.average_turnaround_time, "%H:%M:%S.%f")
-            total_turnaround_time += timedelta(hours=time.hour, minutes=time.minute,
-                                               seconds=time.second).total_seconds()
+            total_turnaround_time += obj.average_turnaround_time.total_seconds()
+
         if total_throughput == 0:
             return 0, 0
-        throughput = total_throughput/num_obj
-        turnaround_time = total_turnaround_time/num_obj
+        throughput = total_throughput/num_metric_records
+        turnaround_time = total_turnaround_time/num_metric_records
 
         return throughput, str(timedelta(seconds=turnaround_time))
 

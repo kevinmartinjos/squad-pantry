@@ -5,24 +5,18 @@ from celery import Celery
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'onboarding_project.settings')
 django.setup()
+
 app = Celery('onboarding_project', broker='pyamqp://guest@localhost//', include=['onboarding_project.tasks'])
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-# app.conf.update(
-#     task_serializer='json',
-#     accept_content=['json'],
-#     result_serializer='json',
-#     timezone='Asia/Calcutta',
-# )
+from squad_pantry_app.models import ConfigurationSettings
+schedule_interval = int(ConfigurationSettings.objects.get(constant='INTERVAL').value)
 
-# app.config_from_object('celeryconfig')
 
-# app.autodiscover_tasks()
-
-app.conf.update(
-    result_expires=10,
-)
-
-if __name__ == '__main__':
-    app.start()
+app.conf.beat_schedule = {
+    'add-every-10-seconds': {
+        'task': 'onboarding_project.tasks.calc_performance_metrics',
+        'schedule': schedule_interval
+    },
+}
