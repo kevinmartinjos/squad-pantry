@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 from squad_pantry_app.models import Order, SquadUser, ConfigurationSettings, PerformanceMetrics
@@ -33,10 +34,12 @@ class OrderTestCase(TestCase):
         self.assertEquals(Order.check_limit(), True)
 
     def test_calculate_avg_metrics(self):
-        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=timezone.now(),
-                             closed_at=timezone.now())
-        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=timezone.now(),
-                             closed_at=timezone.now())
+        now = '2018-02-09 10:39:18'
+        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=now, closed_at=now)
+        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=now, closed_at=now)
 
-        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), 2, 0)
-        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), 0, 0)
+        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), (0, 2))
+
+        PerformanceMetrics.objects.create(created_at=now, average_throughput=2,
+                                          average_turnaround_time=timedelta(seconds=0))
+        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), timedelta(seconds=0), 0)
