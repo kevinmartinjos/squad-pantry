@@ -34,12 +34,13 @@ class OrderTestCase(TestCase):
         self.assertEquals(Order.check_limit(), True)
 
     def test_calculate_avg_metrics(self):
-        now = '2018-02-09 10:39:18'
-        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=now, closed_at=now)
-        Order.objects.create(placed_by=self.user1, status=Order.DELIVERED, created_at=now, closed_at=now)
+        current = timezone.now()
+        later = current + timedelta(hours=1)
+        order1 = Order.objects.create(placed_by=self.user1, status=Order.DELIVERED)
+        order2 = Order.objects.create(placed_by=self.user1, status=Order.DELIVERED)
+        Order.objects.filter(id__in=[order1.id, order2.id]).update(created_at=current, closed_at=later)
 
-        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), (0, 2))
+        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), (timedelta(0, 3600), 2))
 
-        PerformanceMetrics.objects.create(created_at=now, average_throughput=2,
-                                          average_turnaround_time=timedelta(seconds=0))
-        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), timedelta(seconds=0), 0)
+        PerformanceMetrics.objects.create(average_throughput=2, average_turnaround_time=timedelta(seconds=0))
+        self.assertEquals(PerformanceMetrics.calculate_avg_performance_metrics(), (timedelta(seconds=0), 0))

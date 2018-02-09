@@ -1,10 +1,10 @@
 from django import forms
 from django.conf.urls import *
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, ConfigurationSettings, PerformanceMetrics
 
 

@@ -1,7 +1,7 @@
 import logging
+from datetime import timedelta
 from django.db.models import Sum
 from django.utils import timezone
-from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
@@ -63,6 +63,11 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True, editable=False)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at'], name='created_at_idx')
+        ]
+
     def clean(self):
         if self.scheduled_time is not None and self.scheduled_time < timezone.now():
             raise ValidationError('Past dates are not allowed')
@@ -74,7 +79,7 @@ class Order(models.Model):
                 raise ValidationError('Due to heavy traffic, Squad Pantry can not accept your order.')
 
     def save(self, *args, **kwargs):
-        if self.status in self.CLOSED_ORDERS:
+        if self.status in self.CLOSED_ORDERS and self.closed_at is None:
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
