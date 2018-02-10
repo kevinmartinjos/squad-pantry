@@ -168,20 +168,24 @@ class PerformanceMetrics(models.Model):
         Calculate the performance metrics as per scheduled, from last entered entry in database to now.
 
         """
-        if PerformanceMetrics.objects.all().count() < 1:
+        try:
+            latest_record = PerformanceMetrics.objects.latest('id')
+        except PerformanceMetrics.DoesNotExists:
             completed_orders_curr_range = Order.objects.filter(
                 status=Order.DELIVERED
             )
         else:
-            start_date_time = PerformanceMetrics.objects.latest('id').created_at
+            start_date_time = latest_record.created_at
             completed_orders_curr_range = Order.objects.filter(
                 status=Order.DELIVERED,
                 created_at__range=(start_date_time, timezone.now())
             )
-        throughput = len(completed_orders_curr_range)
+        finally:
+            throughput = len(completed_orders_curr_range)
 
         if throughput == 0:
-            return timedelta(seconds=0), 0
+            average_turnaround_time = timedelta(seconds=0)
+            return average_turnaround_time, throughput
 
         total_turnaround_time = 0
         for obj in completed_orders_curr_range:
@@ -211,12 +215,12 @@ class PerformanceMetrics(models.Model):
         metrics = PerformanceMetrics.objects.filter(created_at__range=(start_date, end_date))
         num_metric_records = len(metrics)
         total_throughput = metrics.aggregate(Sum('average_throughput'))['average_throughput__sum']
-        total_turnaround_time = 0
-        for obj in metrics:
-            total_turnaround_time += obj.average_turnaround_time.total_seconds()
+        total_turnaround_time = metrics.aggregate(Sum('average_turnaround_time'))['average_turnaround_time__sum']
+        total_turnaround_time = total_turnaround_time.total_seconds()
 
         if total_throughput == 0:
-            return 0, 0
+            average_turnaround_time = str(timedelta(seconds=0))
+            return total_throughput, average_turnaround_time
         throughput = total_throughput/num_metric_records
         turnaround_time = total_turnaround_time/num_metric_records
 
