@@ -1,11 +1,11 @@
 from django import forms
 from django.conf.urls import *
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.forms import BaseInlineFormSet
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
-from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, ConfigurationSettings
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from squad_pantry_app.models import Dish, Order, OrderDishRelation, SquadUser, ConfigurationSettings, PerformanceMetrics
 
 
 class BaseOrderDishFormset(BaseInlineFormSet):
@@ -193,7 +193,13 @@ class ConfigurationSettingsAdmin(admin.ModelAdmin):
         return request.user.is_superuser or request.user.is_kitchen_staff
 
 
+class PerformanceMetricAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'average_throughput', 'average_turnaround_time', )
+    readonly_fields = ('average_throughput', 'average_turnaround_time', )
+
+
 admin.site.register(Dish, DishAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(SquadUser, SquadUserAdmin)
+admin.site.register(PerformanceMetrics, PerformanceMetricAdmin)
 admin.site.register(ConfigurationSettings, ConfigurationSettingsAdmin)

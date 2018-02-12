@@ -1,11 +1,11 @@
 import logging
-
+from datetime import timedelta
+from django.db.models import Sum
+from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.db import models, transaction, DatabaseError, IntegrityError
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
-from django.db.transaction import TransactionManagementError
-from django.utils import timezone
+from django.db import models, transaction, DatabaseError
 
 
 class SquadUser(AbstractUser):
@@ -63,6 +63,11 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(blank=True, null=True, editable=False)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at'], name='created_at_idx')
+        ]
+
     def clean(self):
         if self.scheduled_time is not None and self.scheduled_time < timezone.now():
             raise ValidationError('Past dates are not allowed')
@@ -74,7 +79,7 @@ class Order(models.Model):
                 raise ValidationError('Due to heavy traffic, Squad Pantry can not accept your order.')
 
     def save(self, *args, **kwargs):
-        if self.status in self.CLOSED_ORDERS:
+        if self.status in self.CLOSED_ORDERS and self.closed_at is None:
             self.closed_at = timezone.now()
         super(Order, self).save(*args, **kwargs)
 
@@ -150,3 +155,78 @@ class ConfigurationSettings(models.Model):
 
     def __str__(self):
         return self.constant
+
+
+class PerformanceMetrics(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True, unique=True)
+    average_throughput = models.IntegerField(editable=False)
+    average_turnaround_time = models.DurationField(editable=False)
+
+    @classmethod
+    def calculate_avg_performance_metrics(cls):
+        """
+        Calculate the performance metrics as per scheduled, from last entered entry in database to now.
+
+        """
+        try:
+            latest_record = PerformanceMetrics.objects.latest('id')
+        except PerformanceMetrics.DoesNotExists:
+            completed_orders_curr_range = Order.objects.filter(
+                status=Order.DELIVERED
+            )
+        else:
+            start_date_time = latest_record.created_at
+            completed_orders_curr_range = Order.objects.filter(
+                status=Order.DELIVERED,
+                created_at__range=(start_date_time, timezone.now())
+            )
+        finally:
+            throughput = len(completed_orders_curr_range)
+
+        if throughput == 0:
+            average_turnaround_time = timedelta(seconds=0)
+            return average_turnaround_time, throughput
+
+        total_turnaround_time = 0
+        for obj in completed_orders_curr_range:
+            total_turnaround_time += (obj.closed_at - obj.created_at).total_seconds()
+
+        average_turnaround_time = total_turnaround_time/throughput
+        return timedelta(seconds=average_turnaround_time), throughput
+
+    @classmethod
+    def create_avg_performance_metrics(cls):
+        """
+        Insert the calculated metrics into Database
+
+        """
+        turnaround_time, throughput = PerformanceMetrics.calculate_avg_performance_metrics()
+        PerformanceMetrics.objects.create(average_throughput=throughput, average_turnaround_time=turnaround_time)
+
+    @classmethod
+    def get_metrics_data(cls, start_date, end_date):
+        """
+        Get average metrics for the given interval
+
+        Keyword arguments:
+        start_date - Metrics needed from this date
+        end_date - Metrics needed till this date
+        """
+        metrics = PerformanceMetrics.objects.filter(created_at__range=(start_date, end_date))
+        num_metric_records = len(metrics)
+        total_metrics = metrics.aggregate(total_throughput=Sum('average_throughput'),
+                                          total_turnaround_time=Sum('average_turnaround_time'))
+
+        total_throughput = total_metrics['total_throughput']
+        total_turnaround_time = total_metrics['total_turnaround_time'].total_seconds()
+
+        if total_throughput == 0:
+            average_turnaround_time = str(timedelta(seconds=0))
+            return total_throughput, average_turnaround_time
+        throughput = total_throughput/num_metric_records
+        turnaround_time = total_turnaround_time/num_metric_records
+
+        return throughput, str(timedelta(seconds=turnaround_time))
+
+    def __str__(self):
+        return str(self.created_at)

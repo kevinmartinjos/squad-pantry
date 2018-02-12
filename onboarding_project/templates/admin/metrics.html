@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/forms.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+    {{ block.super }}
+    <div class="container">
+        {% if request.user.is_kitchen_staff %}
+            <form class="inline-group" align="center" method="get">
+
+                {% csrf_token %}
+                <label class="required">Start Date</label>
+                <input type="date" class="vDateField" name="start_date" value="" required>
+
+                <label class="required">End Date</label>
+                <input type="date" class="vDateField" name="end_date" value="" required>
+
+                <div class="form-row submit-row">
+                    <input type="submit" name="calculate" value="Calculate">
+                </div>
+            </form>
+
+            <div class="jumbotron" align="center">
+            {% if error %}
+                <h3 style="color:red">{{ error }} </h3>
+            {% else %}
+                {% if throughput and turnaround_time %}
+                    <h3>Average Throughput: {{ throughput }}</h3>
+                    <h3>Average Turnaround Time: {{ turnaround_time }}</h3>
+                    <h3>Period: {{ start }} to {{ end }}</h3>
+                {% endif %}
+            {% endif %}
+            </div>
+        {% else %}
+            <h2>You don't have this permission.</h2>
+        {% endif %}
+    </div>
+
+{% endblock %}
