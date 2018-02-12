@@ -214,9 +214,11 @@ class PerformanceMetrics(models.Model):
         """
         metrics = PerformanceMetrics.objects.filter(created_at__range=(start_date, end_date))
         num_metric_records = len(metrics)
-        total_throughput = metrics.aggregate(Sum('average_throughput'))['average_throughput__sum']
-        total_turnaround_time = metrics.aggregate(Sum('average_turnaround_time'))['average_turnaround_time__sum']
-        total_turnaround_time = total_turnaround_time.total_seconds()
+        total_metrics = metrics.aggregate(total_throughput=Sum('average_throughput'),
+                                          total_turnaround_time=Sum('average_turnaround_time'))
+
+        total_throughput = total_metrics['total_throughput']
+        total_turnaround_time = total_metrics['total_turnaround_time'].total_seconds()
 
         if total_throughput == 0:
             average_turnaround_time = str(timedelta(seconds=0))
